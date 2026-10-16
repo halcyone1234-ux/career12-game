@@ -3,7 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>[hidden]{display:none!important}img{max-width:100%}</style>
+<style>[hidden]{display:none!important}img{max-width:100%}/* 進入前聲明（disclaimer） */
+.gate{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.gate-card{background:var(--panel);color:var(--fg);border-radius:20px;box-shadow:var(--shadow);max-width:560px;width:100%;padding:28px 28px 24px;display:flex;flex-direction:column;gap:14px;max-height:90vh;overflow:auto}
+.gate-card h2{margin:0;font-family:var(--display);font-size:1.5rem;line-height:1.25}
+.gate-card p{margin:0;color:var(--fg)}
+.gate-card ul{margin:0;padding-left:1.2em;display:grid;gap:6px}
+.gate-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.gate-actions button{flex:1 1 160px}
+.gate-left{text-align:center;color:var(--muted);padding:20px 0}
+</style>
 <title>我身邊的 12 個人</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&display=swap">
 <style>
@@ -185,6 +194,22 @@ section.screen{display:flex;flex-direction:column;gap:22px}
 </style>
 </head>
 <body>
+  <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+    <div class="gate-card">
+      <div class="eyebrow">進入前請先閱讀</div>
+      <h2 id="gateTitle">使用聲明</h2>
+      <p>本網站為課堂教學使用，目的在幫助同學釐清自己的職涯規劃。</p>
+      <ul>
+        <li>網站內會看到部分個人的學歷、工作與生活相關資訊，屬於私人訊息，僅供課堂討論，請勿截圖、轉傳或公開。</li>
+        <li>為保護當事人，網站內容均已做去識別化處理，人物背景經過改寫與重組，請勿對號入座或推測真實身分。</li>
+        <li>若你不同意以上事項，請不要進入本網站。</li>
+      </ul>
+      <div class="gate-actions">
+        <button id="gateYes">我已閱讀並同意，進入</button>
+        <button class="ghost" id="gateNo">不同意，離開</button>
+      </div>
+    </div>
+  </div>
 
 
 <div class="wrap">
@@ -284,6 +309,18 @@ section.screen{display:flex;flex-direction:column;gap:22px}
   </section>
 </div>
 
+<script>
+(function(){
+  var gate=document.getElementById("gate");
+  var agreed=false; try{ agreed=sessionStorage.getItem("c12.agree")==="1"; }catch(e){}
+  if(agreed){ gate.hidden=true; return; }
+  document.getElementById("gateYes").addEventListener("click",function(){ try{ sessionStorage.setItem("c12.agree","1"); }catch(e){} gate.hidden=true; });
+  document.getElementById("gateNo").addEventListener("click",function(){
+    gate.querySelector(".gate-card").innerHTML='<div class="gate-left"><p>好的，已離開。你可以直接關閉這個分頁。</p></div>';
+    try{ window.close(); }catch(e){}
+  });
+})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <script>
 const WORRY_OPTIONS = ["錢不夠用","工作太累、沒時間","健康","家庭／感情","下一步該往哪走","管人、帶人很難","沒有煩惱"];
