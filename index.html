@@ -9,6 +9,9 @@
 .gate-card h2{margin:0;font-family:var(--display);font-size:1.5rem;line-height:1.25}
 .gate-card p{margin:0;color:var(--fg)}
 .gate-card ul{margin:0;padding-left:1.2em;display:grid;gap:6px}
+.gate-field{display:grid;gap:4px;font-size:.9rem;font-weight:600}
+.gate-field input{font:inherit;padding:.65rem .9rem;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--fg)}
+.gate-err{color:var(--bad);font-size:.9rem}
 .gate-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
 .gate-actions button{flex:1 1 160px}
 .gate-left{text-align:center;color:var(--muted);padding:20px 0}
@@ -204,6 +207,8 @@ section.screen{display:flex;flex-direction:column;gap:22px}
         <li>為保護當事人，網站內容均已做去識別化處理，人物背景經過改寫與重組，請勿對號入座或推測真實身分。</li>
         <li>若你不同意以上事項，請不要進入本網站。</li>
       </ul>
+      <label class="gate-field"><span>你的姓名或學號（同意紀錄用）</span><input id="gateName" type="text" maxlength="30" autocomplete="off" placeholder="例如 王小明 或 7112345678"></label>
+      <p class="gate-err" id="gateErr" hidden></p>
       <div class="gate-actions">
         <button id="gateYes">我已閱讀並同意，進入</button>
         <button class="ghost" id="gateNo">不同意，離開</button>
@@ -309,12 +314,33 @@ section.screen{display:flex;flex-direction:column;gap:22px}
   </section>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
 (function(){
+  /* 同意紀錄：寫到星座問卷同一個 Firebase 專案的 consent/career12（規則設為只能新增、不能讀，老師在 Firebase 後台看） */
+  var FB={apiKey:'AIzaSyAcJtTlBhu2AUHqt2vRddxoh2XxIPJeSGs',authDomain:'zodiac-af366.firebaseapp.com',databaseURL:'https://zodiac-af366-default-rtdb.asia-southeast1.firebasedatabase.app',projectId:'zodiac-af366',appId:'1:728813141842:web:d791a2425d1de1e7abc48b'};
   var gate=document.getElementById("gate");
   var agreed=false; try{ agreed=sessionStorage.getItem("c12.agree")==="1"; }catch(e){}
   if(agreed){ gate.hidden=true; return; }
-  document.getElementById("gateYes").addEventListener("click",function(){ try{ sessionStorage.setItem("c12.agree","1"); }catch(e){} gate.hidden=true; });
+  var nameEl=document.getElementById("gateName"), err=document.getElementById("gateErr"), yes=document.getElementById("gateYes");
+  try{ nameEl.value=localStorage.getItem("c12.name")||""; }catch(e){}
+  function pad(n){ return (n<10?"0":"")+n; }
+  function localStamp(){ var d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds()); }
+  yes.addEventListener("click",function(){
+    var name=nameEl.value.trim();
+    if(!name){ err.textContent="請先填寫姓名或學號，才能記錄你的同意。"; err.hidden=false; nameEl.focus(); return; }
+    err.hidden=true; yes.disabled=true; yes.textContent="記錄中…";
+    try{ localStorage.setItem("c12.name",name); }catch(e){}
+    var done=function(){ try{ sessionStorage.setItem("c12.agree","1"); }catch(e){} gate.hidden=true; };
+    var fail=function(e){ console.error(e); yes.disabled=false; yes.textContent="我已閱讀並同意，進入"; err.textContent="紀錄失敗，請確認網路後再試一次。"; err.hidden=false; };
+    try{
+      if(!window.firebase) throw new Error("firebase sdk not loaded");
+      if(!firebase.apps.length) firebase.initializeApp(FB);
+      firebase.database().ref("consent/career12").push({ name:name, at:firebase.database.ServerValue.TIMESTAMP, atText:localStamp(), ua:(navigator.userAgent||"").slice(0,160) }).then(done, fail);
+    }catch(e){ fail(e); }
+  });
+  nameEl.addEventListener("keydown",function(e){ if(e.key==="Enter") yes.click(); });
   document.getElementById("gateNo").addEventListener("click",function(){
     gate.querySelector(".gate-card").innerHTML='<div class="gate-left"><p>好的，已離開。你可以直接關閉這個分頁。</p></div>';
     try{ window.close(); }catch(e){}
